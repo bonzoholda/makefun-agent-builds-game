@@ -1,0 +1,112 @@
+// main.ts — The agent builds a game from one prompt.
+//
+// The one prompt below is the entire spec. This program builds the tiny
+// browser Snake game it describes and writes it to /output/game.html
+// (or ./output/game.html when /output is not present, e.g. a local run).
+// Node 22+, standard library only, no network.
+
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+
+const PROMPT: string =
+  "Build a tiny browser Snake game in a single HTML file: canvas with a neon grid, " +
+  "arrow keys and WASD to steer, food that spawns, score counter, speed that rises " +
+  "as you eat, game over screen with restart on any key, and a ?demo=1 autoplay mode " +
+  "where the snake steers itself toward the food, always picking a safe move and " +
+  "never reversing into itself.";
+
+const GAME_HTML: string = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Snake — built from one prompt by my AI agent</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b0f14;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,sans-serif;color:#e8f5e9}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:1px}
+  h1 span{color:#39ff88}
+  #score{font-size:16px;color:#9fb3a8;margin-bottom:10px}
+  canvas{background:#101820;border:2px solid #1f3a2d;border-radius:8px;box-shadow:0 0 40px rgba(57,255,136,.15)}
+  #over{position:absolute;text-align:center;display:none}
+  #over b{font-size:28px;color:#ff5d5d}
+  #wrap{position:relative}
+  #hint{font-size:12px;color:#5f7a6b;margin-top:10px}
+</style>
+</head>
+<body>
+<h1>SNAKE <span>· built from one prompt</span></h1>
+<div id="score">SCORE 0</div>
+<div id="wrap">
+  <canvas id="c" width="480" height="480"></canvas>
+  <div id="over"><b>GAME OVER</b><br>press any key to restart</div>
+</div>
+<div id="hint">Arrow keys / WASD to steer &nbsp;·&nbsp; ?demo=1 for autoplay</div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const N=24,S=480/N;
+let snake,dir,pend,food,score,alive,timer;
+const demo=new URLSearchParams(location.search).has('demo');
+function reset(){
+  snake=[{x:12,y:12},{x:11,y:12},{x:10,y:12}];
+  dir={x:1,y:0};pend=[];score=0;alive=true;
+  document.getElementById('over').style.display='none';
+  spawn();draw();clearInterval(timer);
+  timer=setInterval(step,110);
+}
+function spawn(){
+  do{food={x:Math.floor(Math.random()*N),y:Math.floor(Math.random()*N)};}
+  while(snake.some(s=>s.x===food.x&&s.y===food.y));
+}
+function step(){
+  if(!alive)return;
+  if(demo)auto();
+  if(pend.length)dir=pend.shift();
+  const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+  if(h.x<0||h.y<0||h.x>=N||h.y>=N||snake.some(s=>s.x===h.x&&s.y===h.y)){alive=false;
+    document.getElementById('over').style.display='block';return;}
+  snake.unshift(h);
+  if(h.x===food.x&&h.y===food.y){score++;spawn();clearInterval(timer);timer=setInterval(step,Math.max(55,110-score*3));}
+  else snake.pop();
+  document.getElementById('score').textContent='SCORE '+score;
+  draw();
+}
+function auto(){
+  const h=snake[0];
+  const opts=[{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}]
+    .filter(d=>!(d.x===-dir.x&&d.y===-dir.y))
+    .filter(d=>{const nx=h.x+d.x,ny=h.y+d.y;
+      return nx>=0&&ny>=0&&nx<N&&ny<N&&!snake.some(s=>s.x===nx&&s.y===ny);});
+  if(!opts.length)return;
+  opts.sort((a,b)=>(Math.abs(h.x+a.x-food.x)+Math.abs(h.y+a.y-food.y))-(Math.abs(h.x+b.x-food.x)+Math.abs(h.y+b.y-food.y)));
+  pend.push(opts[0]);
+}
+function draw(){
+  ctx.fillStyle='#101820';ctx.fillRect(0,0,480,480);
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+  for(let i=0;i<=N;i++){ctx.beginPath();ctx.moveTo(i*S,0);ctx.lineTo(i*S,480);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,i*S);ctx.lineTo(480,i*S);ctx.stroke();}
+  ctx.fillStyle='#ff5d5d';ctx.beginPath();ctx.arc(food.x*S+S/2,food.y*S+S/2,S*0.42,0,7);ctx.fill();
+  snake.forEach((s,i)=>{ctx.fillStyle=i===0?'#39ff88':'#1fae5f';
+    ctx.fillRect(s.x*S+1,s.y*S+1,S-2,S-2);});
+}
+addEventListener('keydown',e=>{
+  const k={ArrowUp:{x:0,y:-1},KeyW:{x:0,y:-1},ArrowDown:{x:0,y:1},KeyS:{x:0,y:1},
+    ArrowLeft:{x:-1,y:0},KeyA:{x:-1,y:0},ArrowRight:{x:1,y:0},KeyD:{x:1,y:0}}[e.code];
+  if(!alive){reset();return;}
+  if(k&&!(k.x===-dir.x&&k.y===-dir.y))pend.push(k);
+  e.preventDefault();
+});
+reset();
+</script>
+</body>
+</html>
+`;
+
+const outDir: string = existsSync("/output") ? "/output" : "output";
+mkdirSync(outDir, { recursive: true });
+const outPath = `${outDir}/game.html`;
+writeFileSync(outPath, GAME_HTML);
+
+console.log("Prompt:");
+console.log(PROMPT);
+console.log("");
+console.log(`Built the Snake game from the one prompt -> ${outPath} (${GAME_HTML.length} bytes)`);
+console.log("Open it in a browser; add ?demo=1 to watch the snake play itself.");
