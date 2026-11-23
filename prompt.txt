@@ -1,0 +1,1 @@
+Build a tiny browser Snake game in a single HTML file: canvas with a neon grid, arrow keys and WASD to steer, food that spawns, score counter, speed that rises as you eat, game over screen with restart on any key, and a ?demo=1 autoplay mode where the snake steers itself toward the food, always picking a safe move and never reversing into itself.

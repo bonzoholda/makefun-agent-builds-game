@@ -10,13 +10,15 @@ The agent builds a game from one prompt — make.fun bounty entry. A short video
 
 > Build a tiny browser Snake game in a single HTML file: canvas with a neon grid, arrow keys and WASD to steer, food that spawns, score counter, speed that rises as you eat, game over screen with restart on any key, and a ?demo=1 autoplay mode where the snake steers itself toward the food, always picking a safe move and never reversing into itself.
 
+The game the agent built from that prompt is in this repository as `game.html` (open it in a browser; add `?demo=1` to watch the snake play itself) and the prompt itself as `prompt.txt`.
+
 ## Run it
 
 ```sh
-node main.ts
+mkdir -p out && MAKEFUN_BOT_DIR=. MAKEFUN_OUTPUT_DIR=out node main.ts
 ```
 
-`main.ts` (Node 22, standard library only, no network) builds the Snake game from the one prompt and writes it to `/output/game.html` (or `./output/game.html` on a local run). Open the file in a browser; add `?demo=1` to watch the snake play itself.
+`main.ts` (Node 22, standard library only, no network) copies `POST.json` from this repository to `/output/POST.json`, where the gate reads the post's address. It prints nothing on success. `out/POST.json` is then byte for byte this directory's `POST.json`.
 
 ## The video
 
